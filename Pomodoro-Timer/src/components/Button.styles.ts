@@ -18,12 +18,14 @@ const ButtonVariant = {
 
 export const ButtonContainer = styled.button<ButtonContainerProps>`
     width: 100px;
-    height: 50px;
+    height: 40px;
     border-radius: 5px;
     margin-right: 10px;
+    margin-top: 10px;
+    border: none;
 
 
-    background-color: ${props => props.theme.primary}; 
+    background-color: ${props => props.theme["green-500"]}; 
     //aqui eu estou passando uma interpolação para pegar o valor da propriedade primary e passar para o css
 
     color: ${props => props.theme.white}; 
