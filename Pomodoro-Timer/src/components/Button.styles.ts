@@ -23,8 +23,11 @@ export const ButtonContainer = styled.button<ButtonContainerProps>`
     margin-right: 10px;
 
 
-    background-color: ${props => props.theme.primary}; //aqui eu estou passando uma interpolação para pegar o valor da propriedade primary e passar para o css
-    color: ${props => props.theme.white}; //aqui eu estou passando uma interpolação para pegar o valor da propriedade secondary e passar para o css
+    background-color: ${props => props.theme.primary}; 
+    //aqui eu estou passando uma interpolação para pegar o valor da propriedade primary e passar para o css
+
+    color: ${props => props.theme.white}; 
+    //aqui eu estou passando uma interpolação para pegar o valor da propriedade secondary e passar para o css
 
     //aqui vou passar uma interpolação para pegar o valor da propriedade variant e passar para o css
 
