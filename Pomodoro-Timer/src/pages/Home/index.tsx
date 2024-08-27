@@ -3,30 +3,39 @@ import { CountDownContainer, FormContainer, HomeContainer, MinutesAmountInput, S
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as zod from 'zod';
+import { useState } from "react";
 
 //controlled manter em tempo real o valor do input no estado do componente 
 //uncontrolled pegar o valor do input no momento do submit do formulário
 //register é uma função que retorna um objeto com as propriedades do input que vc quer registrar no hook form 
 //retorn onChnge, onBlur, value, name, ref
+const newCycleFormValidationSchema = zod.object(
+    {
+        task: zod.string().min(1, 'informe a tarefa'),//aqui eu estou dizendo que o campo task é uma string e que o tamanho minimo é 1
+        minutesAmount: zod.number().min(5, 'informe um valor maior que 5').max(60, 'informe um valor menor que 60')//aqui eu estou dizendo que o campo minutesAmount é um número e que o valor minimo é 5 e o valor maximo é 60
+    }
+)
+
+type NewCycleFormData = zod.infer<typeof newCycleFormValidationSchema> //aqui eu estou criando um tipo de dado que é um objeto que tem duas propriedades, task e minutesAmount
+//typeof serve para referenciar um dado js para o typescript
+//o infer é automatizar o processo da typagem de algo
+
+
+// interface NewCycleFormData { //aqui eu estou criando um tipo de dado que é um objeto que tem duas propriedades, task e minutesAmount
+//     task : string;
+//     minutesAmount: number;
+// }
+interface Cycle {
+    id: string; 
+    task: string;
+    minutesAmount: number;
+}
 export function Home() {
     
-    const newCycleFormValidationSchema = zod.object(
-        {
-            task: zod.string().min(1, 'informe a tarefa'),//aqui eu estou dizendo que o campo task é uma string e que o tamanho minimo é 1
-            minutesAmount: zod.number().min(5, 'informe um valor maior que 5').max(60, 'informe um valor menor que 60')//aqui eu estou dizendo que o campo minutesAmount é um número e que o valor minimo é 5 e o valor maximo é 60
-        }
-    )
+    
 
-    type NewCycleFormData = zod.infer<typeof newCycleFormValidationSchema> //aqui eu estou criando um tipo de dado que é um objeto que tem duas propriedades, task e minutesAmount
-    //typeof serve para referenciar um dado js para o typescript
-    //o infer é automatizar o processo da typagem de algo
-
-
-    // interface NewCycleFormData { //aqui eu estou criando um tipo de dado que é um objeto que tem duas propriedades, task e minutesAmount
-    //     task : string;
-    //     minutesAmount: number;
-    // }
-
+    const [cycles, setCycles] = useState<Cycle[]>([]); //aqui estou falando que vou armazenar um estado que é um array de ciclos
+    const [activeCycleId, setActiveCycleId] = useState<string | null>(null); //aqui estou falando que vou armazenar um estado que é uma string ou nulo
 
     const {register, handleSubmit, watch, reset} = useForm<NewCycleFormData>({
         //aqui estou passando um resolver que é um objt de configuração que é o zodResolver, e dentro do zod eu preciso passar qual é o meu esquema de validação
@@ -41,9 +50,23 @@ export function Home() {
     //o useForm é como se eu tivesse criando um novo formulario para a aplicação
 
     function handleCreatNewCycle(data: NewCycleFormData) {
-        console.log(data);
+        //aqui eu vou criar um novo ciclo
+        const id = String(Date.now());//aqui eu estou pegando a data atual em milisegundos e transformando em string
+        const newCycle: Cycle ={
+            id,//aqui eu estou criando um id para o ciclo que é a data atual em milisegundos
+            task: data.task,//aqui eu estou pegando o valor do input task
+            minutesAmount: data.minutesAmount,//aqui eu estou pegando o valor do input minutesAmount
+            }
+
+            setCycles(state => [...state, newCycle])//aqui eu to copiando todos os cyclos que tenho e adiciono ele no final
+            //sempre que um estado depender da informação interior eu uso arrow function
+            setActiveCycleId(id);//aqui eu estou setando o id do ciclo ativo
         reset(); //aqui eu estou limpando o valor do input
     }
+    const activeCycle = cycles.find(cycle => cycle.id === activeCycleId);//aqui vou percorrer os cycles e encontrar em que o id do ciclo seja igual ao id do ciclo ativo
+
+    console.log(activeCycle)
+
     const task = watch ('task');//aqui eu estou pegando o valor do input task
     const isSubmitButtonDisabled = !task 
 
