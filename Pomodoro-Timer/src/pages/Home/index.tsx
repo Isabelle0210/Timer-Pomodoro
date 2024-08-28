@@ -36,6 +36,8 @@ export function Home() {
 
     const [cycles, setCycles] = useState<Cycle[]>([]); //aqui estou falando que vou armazenar um estado que é um array de ciclos
     const [activeCycleId, setActiveCycleId] = useState<string | null>(null); //aqui estou falando que vou armazenar um estado que é uma string ou nulo
+    const [amountSecondsPassed, setAmountSecondsPassed] = useState(0); //aqui estou falando que vou armazenar um estado que é um número
+
 
     const {register, handleSubmit, watch, reset} = useForm<NewCycleFormData>({
         //aqui estou passando um resolver que é um objt de configuração que é o zodResolver, e dentro do zod eu preciso passar qual é o meu esquema de validação
@@ -64,6 +66,16 @@ export function Home() {
         reset(); //aqui eu estou limpando o valor do input
     }
     const activeCycle = cycles.find(cycle => cycle.id === activeCycleId);//aqui vou percorrer os cycles e encontrar em que o id do ciclo seja igual ao id do ciclo ativo
+
+    const totalSeconds = activeCycle? activeCycle.minutesAmount * 60 : 0;  //se eu tiver um ciclo ativo essa variavel vai ser o numero de minutos do ciclo *60 se não tiver ciclo ativo vai ser 0
+    const currentSeconds = activeCycle? totalSeconds - amountSecondsPassed : 0; //se eu tiver um ciclo ativo essa variavel vai ser o numero de minutos do ciclo *60 - a quantidade de segundos passados se não tiver ciclo ativo vai ser 0
+
+    const minutesAmount = Math.floor (currentSeconds / 60); //aqui eu estou pegando a quantidade de minutos que faltam para o ciclo acabar e arredondando para baixo
+    //agora eu calculo quantos segundos tem o resto da divisão 
+    const secondsAmount = currentSeconds % 60; //aqui eu estou pegando o resto da divisão de currentSeconds por 60
+
+    const minutes = String(minutesAmount).padStart(2, '0');//aqui eu estou transformando o numero de minutos em string e adicionando um 0 a esquerda se o numero de minutos for menor que 10
+    const seconds = String(secondsAmount).padStart(2, '0');//aqui eu estou transformando o numero de segundos em string e adicionando um 0 a esquerda se o numero de segundos for menor que 10
 
     console.log(activeCycle)
 
@@ -104,11 +116,11 @@ return (
                     <span>minutos.</span>
             </FormContainer>
             <CountDownContainer>
-                <span>0</span>
-                <span>0</span>
+                <span>{minutes[0]}</span>
+                <span>{minutes[1]}</span>
                 <Separator>:</Separator>
-                <span>0</span>
-                <span>0</span>
+                <span>{seconds[0]}</span>
+                <span>{seconds[1]}</span>
             </CountDownContainer>
             <StartContdownButton 
             disabled={!task} //somente quando n tiver nada no input
