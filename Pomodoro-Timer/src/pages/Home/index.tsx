@@ -3,7 +3,8 @@ import { CountDownContainer, FormContainer, HomeContainer, MinutesAmountInput, S
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as zod from 'zod';
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { differenceInSeconds } from "date-fns";
 
 //controlled manter em tempo real o valor do input no estado do componente 
 //uncontrolled pegar o valor do input no momento do submit do formulário
@@ -29,6 +30,7 @@ interface Cycle {
     id: string; 
     task: string;
     minutesAmount: number;
+    startDate: Date;
 }
 export function Home() {
     
@@ -51,6 +53,26 @@ export function Home() {
     //handleSubmit é um método que recebe uma função que será executada quando o formulário for submetido
     //o useForm é como se eu tivesse criando um novo formulario para a aplicação
 
+    const activeCycle = cycles.find(cycle => cycle.id === activeCycleId);//aqui vou percorrer os cycles e encontrar em que o id do ciclo seja igual ao id do ciclo ativo
+
+    useEffect(()=>{
+        
+        let interval: number; //aqui eu estou criando uma variavel interval que vai ser um numero
+
+        if(activeCycle){
+            interval = setInterval(()=>{
+                setAmountSecondsPassed( differenceInSeconds (new Date (), activeCycle.startDate))//aqui eu estou setando a quantidade de segundos passados desde o inicio do ciclo ativo meio que fazendo uma subtração da data atual com a data de inicio do ciclo ativo
+            }, 1000);
+        }
+            
+        return() => {
+            clearInterval(interval);
+        }
+    }, [activeCycle]);//aqui eu estou dizendo que toda vez que o ciclo ativo mudar eu vou executar o que está dentro do useEffect
+
+
+
+
     function handleCreatNewCycle(data: NewCycleFormData) {
         //aqui eu vou criar um novo ciclo
         const id = String(Date.now());//aqui eu estou pegando a data atual em milisegundos e transformando em string
@@ -58,14 +80,17 @@ export function Home() {
             id,//aqui eu estou criando um id para o ciclo que é a data atual em milisegundos
             task: data.task,//aqui eu estou pegando o valor do input task
             minutesAmount: data.minutesAmount,//aqui eu estou pegando o valor do input minutesAmount
+            startDate: new Date(),//aqui eu estou pegando a data atual
             }
 
             setCycles(state => [...state, newCycle])//aqui eu to copiando todos os cyclos que tenho e adiciono ele no final
             //sempre que um estado depender da informação interior eu uso arrow function
             setActiveCycleId(id);//aqui eu estou setando o id do ciclo ativo
+            setAmountSecondsPassed(0);//aqui eu estou setando a quantidade de segundos passados para 0 quando mudar de ciclo
+
         reset(); //aqui eu estou limpando o valor do input
     }
-    const activeCycle = cycles.find(cycle => cycle.id === activeCycleId);//aqui vou percorrer os cycles e encontrar em que o id do ciclo seja igual ao id do ciclo ativo
+    
 
     const totalSeconds = activeCycle? activeCycle.minutesAmount * 60 : 0;  //se eu tiver um ciclo ativo essa variavel vai ser o numero de minutos do ciclo *60 se não tiver ciclo ativo vai ser 0
     const currentSeconds = activeCycle? totalSeconds - amountSecondsPassed : 0; //se eu tiver um ciclo ativo essa variavel vai ser o numero de minutos do ciclo *60 - a quantidade de segundos passados se não tiver ciclo ativo vai ser 0
@@ -77,7 +102,13 @@ export function Home() {
     const minutes = String(minutesAmount).padStart(2, '0');//aqui eu estou transformando o numero de minutos em string e adicionando um 0 a esquerda se o numero de minutos for menor que 10
     const seconds = String(secondsAmount).padStart(2, '0');//aqui eu estou transformando o numero de segundos em string e adicionando um 0 a esquerda se o numero de segundos for menor que 10
 
-    console.log(activeCycle)
+
+    //toda vez que meus segundos e minutos atualizarem eu vou atualizar o titulo da pagina com o tempo restante
+    useEffect(()=>{
+        if(activeCycle){ //vai ser executado toda vez que o ciclo ativo mudar 
+            document.title = `${minutes}:${seconds}`//aqui eu estou setando o titulo da pagina
+        }
+    },[minutes, seconds, activeCycle])
 
     const task = watch ('task');//aqui eu estou pegando o valor do input task
     const isSubmitButtonDisabled = !task 
@@ -119,7 +150,7 @@ return (
                 <span>{minutes[0]}</span>
                 <span>{minutes[1]}</span>
                 <Separator>:</Separator>
-                <span>{seconds[0]}</span>
+                <span>{seconds[0]}</span> 
                 <span>{seconds[1]}</span>
             </CountDownContainer>
             <StartContdownButton 
