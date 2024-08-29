@@ -1,25 +1,20 @@
-import { Play } from "phosphor-react";
-import { CountDownContainer, FormContainer, HomeContainer, MinutesAmountInput, Separator, StartContdownButton, TaskInput } from "./style";
+import { HandPalm, Play } from "phosphor-react";
+import { HomeContainer, StartContdownButton, StopContdownButton } from "./style";
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as zod from 'zod';
 import { useEffect, useState } from "react";
-import { differenceInSeconds } from "date-fns";
+import { differenceInSeconds, set } from "date-fns";
+import { NewCycleForm } from "./newCycleForm";
+import { Countdown } from "./Countdown";
 
 //controlled manter em tempo real o valor do input no estado do componente 
 //uncontrolled pegar o valor do input no momento do submit do formulário
 //register é uma função que retorna um objeto com as propriedades do input que vc quer registrar no hook form 
 //retorn onChnge, onBlur, value, name, ref
-const newCycleFormValidationSchema = zod.object(
-    {
-        task: zod.string().min(1, 'informe a tarefa'),//aqui eu estou dizendo que o campo task é uma string e que o tamanho minimo é 1
-        minutesAmount: zod.number().min(5, 'informe um valor maior que 5').max(60, 'informe um valor menor que 60')//aqui eu estou dizendo que o campo minutesAmount é um número e que o valor minimo é 5 e o valor maximo é 60
-    }
-)
 
-type NewCycleFormData = zod.infer<typeof newCycleFormValidationSchema> //aqui eu estou criando um tipo de dado que é um objeto que tem duas propriedades, task e minutesAmount
-//typeof serve para referenciar um dado js para o typescript
-//o infer é automatizar o processo da typagem de algo
+
+
 
 
 // interface NewCycleFormData { //aqui eu estou criando um tipo de dado que é um objeto que tem duas propriedades, task e minutesAmount
@@ -31,6 +26,8 @@ interface Cycle {
     task: string;
     minutesAmount: number;
     startDate: Date;
+    interrupedDate?: Date;
+    finishedDate?: Date;
 }
 export function Home() {
     
@@ -38,40 +35,23 @@ export function Home() {
 
     const [cycles, setCycles] = useState<Cycle[]>([]); //aqui estou falando que vou armazenar um estado que é um array de ciclos
     const [activeCycleId, setActiveCycleId] = useState<string | null>(null); //aqui estou falando que vou armazenar um estado que é uma string ou nulo
-    const [amountSecondsPassed, setAmountSecondsPassed] = useState(0); //aqui estou falando que vou armazenar um estado que é um número
+    
+    const activeCycle = cycles.find(cycle => cycle.id === activeCycleId);//aqui vou percorrer os cycles e encontrar em que o id do ciclo seja igual ao id do ciclo ativo 
+    
 
 
-    const {register, handleSubmit, watch, reset} = useForm<NewCycleFormData>({
-        //aqui estou passando um resolver que é um objt de configuração que é o zodResolver, e dentro do zod eu preciso passar qual é o meu esquema de validação
-        resolver: zodResolver(newCycleFormValidationSchema),
-        defaultValues: { //aqui posso passar os valores iniciais de cada campo
-            task: '',
-            minutesAmount: 0,
-        }
-    }); //register é um metodo que adiciona um input ao formulário
-    //watch é um método que fica escutando o valor de um input
-    //handleSubmit é um método que recebe uma função que será executada quando o formulário for submetido
-    //o useForm é como se eu tivesse criando um novo formulario para a aplicação
-
-    const activeCycle = cycles.find(cycle => cycle.id === activeCycleId);//aqui vou percorrer os cycles e encontrar em que o id do ciclo seja igual ao id do ciclo ativo
-
-    useEffect(()=>{
-        
-        let interval: number; //aqui eu estou criando uma variavel interval que vai ser um numero
-
-        if(activeCycle){
-            interval = setInterval(()=>{
-                setAmountSecondsPassed( differenceInSeconds (new Date (), activeCycle.startDate))//aqui eu estou setando a quantidade de segundos passados desde o inicio do ciclo ativo meio que fazendo uma subtração da data atual com a data de inicio do ciclo ativo
-            }, 1000);
-        }
-            
-        return() => {
-            clearInterval(interval);
-        }
-    }, [activeCycle]);//aqui eu estou dizendo que toda vez que o ciclo ativo mudar eu vou executar o que está dentro do useEffect
-
-
-
+    function handleInterrupedCycle() {
+        setCycles((state => state.map((cycle)=>{
+            if(cycle.id === activeCycleId){
+                return {
+                    ...cycle,
+                    interrupedDate: new Date()
+                }
+            }
+            return cycle;
+        })))
+        setActiveCycleId(null);//aqui eu estou setando o id do ciclo ativo para nulo para n ter ciclo ativo
+    }
 
     function handleCreatNewCycle(data: NewCycleFormData) {
         //aqui eu vou criar um novo ciclo
@@ -92,7 +72,7 @@ export function Home() {
     }
     
 
-    const totalSeconds = activeCycle? activeCycle.minutesAmount * 60 : 0;  //se eu tiver um ciclo ativo essa variavel vai ser o numero de minutos do ciclo *60 se não tiver ciclo ativo vai ser 0
+    
     const currentSeconds = activeCycle? totalSeconds - amountSecondsPassed : 0; //se eu tiver um ciclo ativo essa variavel vai ser o numero de minutos do ciclo *60 - a quantidade de segundos passados se não tiver ciclo ativo vai ser 0
 
     const minutesAmount = Math.floor (currentSeconds / 60); //aqui eu estou pegando a quantidade de minutos que faltam para o ciclo acabar e arredondando para baixo
@@ -113,52 +93,35 @@ export function Home() {
     const task = watch ('task');//aqui eu estou pegando o valor do input task
     const isSubmitButtonDisabled = !task 
 
-
+    // Prop Drilling -> é quando a gente tem Muitas props sendo passadas de um componente para o outro
+    // Context API -> é uma API do React que serve para compartilhar estados entre componentes
 return (
     <HomeContainer>
         <form onSubmit={handleSubmit(handleCreatNewCycle)}>
-            <FormContainer>
-                    <label>Vou trabalhar em: </label>
-                    <TaskInput 
-                        type="text" 
-                        id="task" 
-                        placeholder="Dê um nome para o seu projeto"
-                        list="task-suggestions"
-                        {...register('task')} 
-                        />
+            <NewCycleForm/>
+            <Countdown 
+                activeCycle={activeCycle} 
+                setCycles={setCycles} 
+                activeCycleId={activeCycleId}
+                
+            />
 
-                        <datalist id="task-suggestions">
-                            <option value="Projeto 1"/>
-                            <option value="Projeto 2"/>
-                            <option value="Projeto 3"/>
-                            <option value="Projeto 4"/>
-                        </datalist>
-
-                    <label>durante:</label>
-                    <MinutesAmountInput 
-                        type="number" 
-                        id="minutesAmount" 
-                        placeholder="00"
-                        step={5}
-                        min={5}
-                        max={60}
-                        {...register('minutesAmount', {valueAsNumber: true})}      
-                        />
-                    <span>minutos.</span>
-            </FormContainer>
-            <CountDownContainer>
-                <span>{minutes[0]}</span>
-                <span>{minutes[1]}</span>
-                <Separator>:</Separator>
-                <span>{seconds[0]}</span> 
-                <span>{seconds[1]}</span>
-            </CountDownContainer>
-            <StartContdownButton 
-            disabled={!task} //somente quando n tiver nada no input
-            type="submit"> 
-                <Play size={24}/>
-                Começar
-            </StartContdownButton>
+            {activeCycle ? ( //se tiver ciclo ativo eu vou mostrar o botão de parar o ciclo 
+                <StopContdownButton 
+                    onClick={handleInterrupedCycle}
+                    type="button"> 
+                    <HandPalm size={24}/>
+                    
+                    Interromper
+                </StopContdownButton>
+            ):(
+                <StartContdownButton 
+                    disabled={!task} //somente quando n tiver nada no input
+                    type="submit"> 
+                    <Play size={24}/>
+                    Começar
+                </StartContdownButton>
+            )}
         </form>
     </HomeContainer>
 );
