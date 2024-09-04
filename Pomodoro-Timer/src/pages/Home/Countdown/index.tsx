@@ -1,16 +1,16 @@
-import { useEffect, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import { CountDownContainer, Separator } from "./styles";
 import { differenceInSeconds } from "date-fns";
+import { CycleContext } from "..";
 
-interface CountdownProps {
-    activeCycle: any //aqui eu fiz a criação de uma propriedade que é um ciclo ativo que está sendo passado para o componente Countdown que fica na pasta Home  isso faz com que eu faça a comunicção entre os componentes que não estão diretamente ligados 
-    setCycles: any;
-    activeCycleId: any;
-}
 
-export function Countdown ({activeCycle, setCycles, activeCycleId}: CountdownProps){
+
+export function Countdown (){
+    const {activeCycle, activeCycleId, markCurrentCycleAsFinished  }= useContext (CycleContext);
+
     const [amountSecondsPassed, setAmountSecondsPassed] = useState(0); //aqui estou falando que vou armazenar um estado que é um número
     const totalSeconds = activeCycle? activeCycle.minutesAmount * 60 : 0;  //se eu tiver um ciclo ativo essa variavel vai ser o numero de minutos do ciclo *60 se não tiver ciclo ativo vai ser 0
+
 
     useEffect(()=>{
         
@@ -21,17 +21,7 @@ export function Countdown ({activeCycle, setCycles, activeCycleId}: CountdownPro
                 const secondsDifference = differenceInSeconds(new Date(), activeCycle.startDate);//aqui eu estou pegando a diferença de segundos entre a data atual e a data de inicio do ciclo ativo
 
                 if (secondsDifference>= totalSeconds){//se a diferença de segundos for maior ou igual ao total de segundos do ciclo eu vou interromper o ciclo
-                    setCycles(
-                        cycles.map((cycle)=>{
-                            if(cycle.id === activeCycleId){
-                                return {
-                                    ...cycle,
-                                    finishedDate: new Date()
-                                }
-                            }
-                            return cycle;
-                        })
-                    )
+                    markCurrentCycleAsFinished();//aqui eu estou marcando o ciclo atual como finalizado
 
                     setAmountSecondsPassed(totalSeconds);//aqui eu estou setando a quantidade de segundos passados para 0 quando o ciclo acabar
                     clearInterval(interval);//aqui eu estou limpando o intervalo para que ele pare de contar
@@ -44,8 +34,24 @@ export function Countdown ({activeCycle, setCycles, activeCycleId}: CountdownPro
         return() => {
             clearInterval(interval);
         }
-    }, [activeCycle, totalSeconds, activeCycleId, cycles]);//aqui eu estou dizendo que toda vez que o ciclo ativo mudar eu vou executar o que está dentro do useEffect
+    }, [activeCycle, totalSeconds, activeCycleId, markCurrentCycleAsFinished]);//aqui eu estou dizendo que toda vez que o ciclo ativo mudar eu vou executar o que está dentro do useEffect
 
+    const currentSeconds = activeCycle? totalSeconds - amountSecondsPassed : 0; //se eu tiver um ciclo ativo essa variavel vai ser o numero de minutos do ciclo *60 - a quantidade de segundos passados se não tiver ciclo ativo vai ser 0
+
+    const minutesAmount = Math.floor (currentSeconds / 60); //aqui eu estou pegando a quantidade de minutos que faltam para o ciclo acabar e arredondando para baixo
+    //agora eu calculo quantos segundos tem o resto da divisão 
+    const secondsAmount = currentSeconds % 60; //aqui eu estou pegando o resto da divisão de currentSeconds por 60
+
+    const minutes = String(minutesAmount).padStart(2, '0');//aqui eu estou transformando o numero de minutos em string e adicionando um 0 a esquerda se o numero de minutos for menor que 10
+    const seconds = String(secondsAmount).padStart(2, '0');//aqui eu estou transformando o numero de segundos em string e adicionando um 0 a esquerda se o numero de segundos for menor que 10
+
+
+    //toda vez que meus segundos e minutos atualizarem eu vou atualizar o titulo da pagina com o tempo restante
+    useEffect(()=>{
+        if(activeCycle){ //vai ser executado toda vez que o ciclo ativo mudar 
+            document.title = `${minutes}:${seconds}`//aqui eu estou setando o titulo da pagina
+        }
+    },[minutes, seconds, activeCycle])
     return(
             <CountDownContainer>
                 <span>{minutes[0]}</span>
