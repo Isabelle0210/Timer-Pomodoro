@@ -1,8 +1,12 @@
 import { HandPalm, Play } from "phosphor-react";
 import { HomeContainer, StartContdownButton, StopContdownButton } from "./style";
-import React, { createContext, useEffect, useState } from "react";
 import { NewCycleForm } from "./newCycleForm";
 import { Countdown } from "./Countdown";
+import { FormProvider, useForm } from "react-hook-form";
+import * as zod from 'zod'; //aqui estou importando o zod que é uma biblioteca de validação de dados
+import { zodResolver } from "@hookform/resolvers/zod";
+import { CycleContext } from "../../context/CyclesContext";
+import { useContext } from "react";
 
 //controlled manter em tempo real o valor do input no estado do componente 
 //uncontrolled pegar o valor do input no momento do submit do formulário
@@ -14,92 +18,58 @@ import { Countdown } from "./Countdown";
 //     task : string;
 //     minutesAmount: number;
 // }
-interface Cycle {
-    id: string; 
-    task: string;
-    minutesAmount: number;
-    startDate: Date;
-    interrupedDate?: Date;
-    finishedDate?: Date;
-}
 
-interface CycleContextType {
-    activeCycle: Cycle | undefined,
-    activeCycleId: string | null,
-    // setCycles :  React.Dispatch<React.SetStateAction<Cycle[]>>, //isso é a typagem de uma função que vai alterar o estado de cycles
-    markCurrentCycleAsFinished: () => void,
-}
-
-export const CycleContext = createContext({} as CycleContextType);
+const newCycleFormValidationSchema = zod.object(
+    {
+        task: zod.string().min(1, 'informe a tarefa'),//aqui eu estou dizendo que o campo task é uma string e que o tamanho minimo é 1
+        minutesAmount: zod.number().min(1, 'informe um valor maior que 5').max(60, 'informe um valor menor que 60')//aqui eu estou dizendo que o campo minutesAmount é um número e que o valor minimo é 5 e o valor maximo é 60
+    }
+)
+type NewCycleFormData = zod.infer<typeof newCycleFormValidationSchema> //aqui eu estou criando um tipo de dado que é um objeto que tem duas propriedades, task e minutesAmount
+//typeof serve para referenciar um dado js para o typescript
+//o infer é automatizar o processo da typagem de algo
 
 export function Home() {
-    
-    const [cycles, setCycles] = useState<Cycle[]>([]); //aqui estou falando que vou armazenar um estado que é um array de ciclos
-    const [activeCycleId, setActiveCycleId] = useState<string | null>(null); //aqui estou falando que vou armazenar um estado que é uma string ou nulo
-    const activeCycle = cycles.find(cycle => cycle.id === activeCycleId);//aqui vou percorrer os cycles e encontrar em que o id do ciclo seja igual ao id do ciclo ativo 
-    
-    function markCurrentCycleAsFinished() {
-        setCycles(
-            cycles.map((cycle)=>{
-                if(cycle.id === activeCycleId){
-                    return {
-                        ...cycle,
-                        finishedDate: new Date()
-                    }
-                }
-                return cycle;
-            })
-        )
-    }
-    
-    function handleInterrupedCycle() {
-        setCycles((state => state.map((cycle)=>{
-            if(cycle.id === activeCycleId){
-                return {
-                    ...cycle,
-                    interrupedDate: new Date()
-                }
-            }
-            return cycle;
-        })))
-        setActiveCycleId(null);//aqui eu estou setando o id do ciclo ativo para nulo para n ter ciclo ativo
-    }
-    // function handleCreatNewCycle(data: NewCycleFormData) {
-    //     //aqui eu vou criar um novo ciclo
-    //     const id = String(Date.now());//aqui eu estou pegando a data atual em milisegundos e transformando em string
-    //     const newCycle: Cycle ={
-    //         id,//aqui eu estou criando um id para o ciclo que é a data atual em milisegundos
-    //         task: data.task,//aqui eu estou pegando o valor do input task
-    //         minutesAmount: data.minutesAmount,//aqui eu estou pegando o valor do input minutesAmount
-    //         startDate: new Date(),//aqui eu estou pegando a data atual
-    //         }
 
-    //         setCycles(state => [...state, newCycle])//aqui eu to copiando todos os cyclos que tenho e adiciono ele no final
-    //         //sempre que um estado depender da informação interior eu uso arrow function
-    //         setActiveCycleId(id);//aqui eu estou setando o id do ciclo ativo
-    //         setAmountSecondsPassed(0);//aqui eu estou setando a quantidade de segundos passados para 0 quando mudar de ciclo
+    const { activeCycle,CreatNewCycle, InterrupedCurrentCycle, } = useContext(CycleContext);
 
-    //     reset(); //aqui eu estou limpando o valor do input
-    // }
+    const newCycleForm = useForm<NewCycleFormData>({
+        //aqui estou passando um resolver que é um objt de configuração que é o zodResolver, e dentro do zod eu preciso passar qual é o meu esquema de validação
+        resolver: zodResolver(newCycleFormValidationSchema),
+        defaultValues: { //aqui posso passar os valores iniciais de cada campo
+            task: '',
+            minutesAmount: 0,
+        }
+    }); //register é um metodo que adiciona um input ao formulário
+    //watch é um método que fica escutando o valor de um input
+    //handleSubmit é um método que recebe uma função que será executada quando o formulário for submetido
+    //o useForm é como se eu tivesse criando um novo formulario para a aplicação
     
-    //const task = watch ('task');//aqui eu estou pegando o valor do input task
-    //const isSubmitDisabled = !task 
+    const {handleSubmit, watch, reset} = newCycleForm; //aqui eu estou desestruturando o newCycleForm e pegando o  handleSubmit, watch e reset dele 
+
+    const task = watch ('task');//aqui eu estou pegando o valor do input task
+    const isSubmitDisabled = !task 
 
     // Prop Drilling -> é quando a gente tem Muitas props sendo passadas de um componente para o outro
     // Context API -> é uma API do React que serve para compartilhar estados entre componentes
 
-    
+    function handleCreateNewCycle(data: NewCycleFormData) {
+        CreatNewCycle(data)
+        reset(); 
+    }
     
 return (
     <HomeContainer>
-        <form  /*onSubmit={handleSubmit(handleCreatNewCycle)}*/>
-            <CycleContext.Provider value={{activeCycle, activeCycleId, markCurrentCycleAsFinished }}>
-                {/* <NewCycleForm/> */}
+        <form  onSubmit={handleSubmit(handleCreateNewCycle)}>
+            
+                <FormProvider {...newCycleForm}> 
+                    <NewCycleForm/>
+                </FormProvider>
                 <Countdown /> 
-            </CycleContext.Provider>
+            
             {activeCycle ? ( //se tiver ciclo ativo eu vou mostrar o botão de parar o ciclo 
                 <StopContdownButton 
-                    onClick={handleInterrupedCycle}
+                    onClick={InterrupedCurrentCycle}
                     type="button"> 
                     <HandPalm size={24}/>
                     
@@ -107,7 +77,7 @@ return (
                 </StopContdownButton>
             ):(
                 <StartContdownButton 
-                    /*disabled={isSubmitDisabled} //somente quando n tiver nada no input*/
+                    disabled={isSubmitDisabled} //somente quando n tiver nada no input
                     type="submit"> 
                     <Play size={24}/>
                     Começar

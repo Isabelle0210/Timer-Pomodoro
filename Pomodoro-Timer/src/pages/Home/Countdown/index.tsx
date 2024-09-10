@@ -1,14 +1,14 @@
-import { useContext, useEffect, useState } from "react";
+import { useContext, useEffect } from "react";
 import { CountDownContainer, Separator } from "./styles";
 import { differenceInSeconds } from "date-fns";
-import { CycleContext } from "..";
+import { CycleContext } from "../../../context/CyclesContext";
+
 
 
 
 export function Countdown (){
-    const {activeCycle, activeCycleId, markCurrentCycleAsFinished  }= useContext (CycleContext);
+    const {activeCycle, activeCycleId, markCurrentCycleAsFinished, amountSecondsPassed, setSecondsPassed  }= useContext (CycleContext);
 
-    const [amountSecondsPassed, setAmountSecondsPassed] = useState(0); //aqui estou falando que vou armazenar um estado que é um número
     const totalSeconds = activeCycle? activeCycle.minutesAmount * 60 : 0;  //se eu tiver um ciclo ativo essa variavel vai ser o numero de minutos do ciclo *60 se não tiver ciclo ativo vai ser 0
 
 
@@ -23,10 +23,10 @@ export function Countdown (){
                 if (secondsDifference>= totalSeconds){//se a diferença de segundos for maior ou igual ao total de segundos do ciclo eu vou interromper o ciclo
                     markCurrentCycleAsFinished();//aqui eu estou marcando o ciclo atual como finalizado
 
-                    setAmountSecondsPassed(totalSeconds);//aqui eu estou setando a quantidade de segundos passados para 0 quando o ciclo acabar
+                    setSecondsPassed(totalSeconds);//aqui eu estou setando a quantidade de segundos passados para 0 quando o ciclo acabar
                     clearInterval(interval);//aqui eu estou limpando o intervalo para que ele pare de contar
                 }else{
-                    setAmountSecondsPassed(secondsDifference);//aqui eu estou setando a quantidade de segundos passados
+                    setSecondsPassed(secondsDifference);//aqui eu estou setando a quantidade de segundos passados
                 }
             }, 1000);
         }
@@ -34,7 +34,7 @@ export function Countdown (){
         return() => {
             clearInterval(interval);
         }
-    }, [activeCycle, totalSeconds, activeCycleId, markCurrentCycleAsFinished]);//aqui eu estou dizendo que toda vez que o ciclo ativo mudar eu vou executar o que está dentro do useEffect
+    }, [activeCycle, totalSeconds, activeCycleId, markCurrentCycleAsFinished, setSecondsPassed]);//aqui eu estou dizendo que toda vez que o ciclo ativo mudar eu vou executar o que está dentro do useEffect
 
     const currentSeconds = activeCycle? totalSeconds - amountSecondsPassed : 0; //se eu tiver um ciclo ativo essa variavel vai ser o numero de minutos do ciclo *60 - a quantidade de segundos passados se não tiver ciclo ativo vai ser 0
 
